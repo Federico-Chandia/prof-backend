@@ -297,15 +297,27 @@ router.get('/view/:type', (req, res) => {
       <script>
         function acceptDocument(docType) {
           try {
-            // Guardar en localStorage que fue aceptado
-            const accepted = JSON.parse(localStorage.getItem('legalAcceptance') || '{}');
-            accepted[docType] = true;
-            localStorage.setItem('legalAcceptance', JSON.stringify(accepted));
+            // Si fue abierto desde otra ventana, enviar mensaje al padre
+            if (window.opener && !window.opener.closed) {
+              window.opener.postMessage({
+                type: 'LEGAL_DOCUMENT_ACCEPTED',
+                docType: docType
+              }, '*');
+            }
+            
+            // También guardar localmente si es posible
+            try {
+              const accepted = JSON.parse(localStorage.getItem('legalAcceptance') || '{}');
+              accepted[docType] = true;
+              localStorage.setItem('legalAcceptance', JSON.stringify(accepted));
+            } catch (e) {
+              console.warn('localStorage no disponible:', e);
+            }
             
             // Mostrar mensaje de éxito
             document.getElementById('successMessage').style.display = 'block';
             
-            // Cerrar la pestaña después de 1.5 segundos
+            // Cerrar la pestaña después de 1500ms
             setTimeout(() => {
               window.close();
             }, 1500);
@@ -314,6 +326,17 @@ router.get('/view/:type', (req, res) => {
             alert('Error al procesar tu aceptación. Por favor intenta nuevamente.');
           }
         }
+
+        // Escuchar mensajes desde otra ventana (backup)
+        window.addEventListener('message', function(event) {
+          if (event.data.type === 'REQUEST_LEGAL_STATUS') {
+            const accepted = JSON.parse(localStorage.getItem('legalAcceptance') || '{}');
+            event.source.postMessage({
+              type: 'LEGAL_STATUS_RESPONSE',
+              data: accepted
+            }, event.origin);
+          }
+        });
       </script>
     </body>
     </html>
