@@ -78,6 +78,8 @@ app.use('/api/messages', require('./routes/messages'));
 app.use('/api/tokens', require('./routes/tokens'));
 // Uploads (images)
 app.use('/api/uploads', require('./routes/uploads'));
+// Documentos legales - Política de privacidad, términos y cookies
+app.use('/api/legal', require('./routes/legal'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {

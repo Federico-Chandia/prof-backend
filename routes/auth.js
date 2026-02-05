@@ -81,7 +81,10 @@ router.post('/register', [
   body('password').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número'),
   body('rol').isIn(['cliente', 'profesional']).withMessage('Rol inválido'),
   body('direccion.calle').notEmpty().withMessage('La dirección es requerida'),
-  body('direccion.barrio').notEmpty().withMessage('El barrio es requerido')
+  body('direccion.barrio').notEmpty().withMessage('El barrio es requerido'),
+  body('aceptacionLegal.terminosCondiciones.aceptado').equals('true').withMessage('Debes aceptar los Términos y Condiciones'),
+  body('aceptacionLegal.politicaPrivacidad.aceptado').equals('true').withMessage('Debes aceptar la Política de Privacidad'),
+  body('aceptacionLegal.politicaCookies.aceptado').equals('true').withMessage('Debes aceptar la Política de Cookies')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -89,7 +92,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, email, password, telefono, rol, direccion } = req.body;
+    const { nombre, email, password, telefono, rol, direccion, aceptacionLegal } = req.body;
 
     // Verificar si el usuario ya existe
     const existingUser = await User.findOne({ email });
@@ -97,14 +100,15 @@ router.post('/register', [
       return res.status(400).json({ message: 'El usuario ya existe' });
     }
 
-    // Crear usuario
+    // Crear usuario con información de aceptación legal
     const user = new User({
       nombre,
       email,
       password,
       telefono,
       rol,
-      direccion
+      direccion,
+      aceptacionLegal
     });
 
     await user.save();

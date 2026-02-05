@@ -55,7 +55,24 @@ const userSchema = new mongoose.Schema({
     }]
   },
   resetPasswordToken: String,
-  resetPasswordExpires: Date
+  resetPasswordExpires: Date,
+  aceptacionLegal: {
+    terminosCondiciones: {
+      aceptado: { type: Boolean, default: false },
+      fechaAceptacion: Date,
+      version: String
+    },
+    politicaPrivacidad: {
+      aceptado: { type: Boolean, default: false },
+      fechaAceptacion: Date,
+      version: String
+    },
+    politicaCookies: {
+      aceptado: { type: Boolean, default: false },
+      fechaAceptacion: Date,
+      version: String
+    }
+  }
 }, {
   timestamps: true
 });
