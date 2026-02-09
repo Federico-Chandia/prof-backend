@@ -56,6 +56,9 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordExpires: Date,
+  // Email confirmation
+  emailConfirmToken: String,
+  emailConfirmExpires: Date,
   aceptacionLegal: {
     terminosCondiciones: {
       aceptado: { type: Boolean, default: false },

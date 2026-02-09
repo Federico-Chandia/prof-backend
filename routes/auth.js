@@ -113,6 +113,35 @@ router.post('/register', [
 
     await user.save();
 
+    // Generar token de confirmación por email
+    const confirmToken = crypto.randomBytes(32).toString('hex');
+    user.emailConfirmToken = confirmToken;
+    user.emailConfirmExpires = Date.now() + (24 * 60 * 60 * 1000); // 24 horas
+    await user.save();
+
+    // Construir URL de confirmación
+    const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0];
+    const confirmUrl = `${req.protocol}://${req.get('host')}/api/auth/confirm-email/${confirmToken}`;
+
+    // Enviar email de confirmación
+    const subject = 'Confirma tu correo en Profesionales';
+    const html = `
+      <p>Hola ${user.nombre},</p>
+      <p>Bienvenido/a a Profesionales.</p>
+      <p>Para confirmar tu casilla de correo electrónico, por favor haga click en el siguiente enlace:</p>
+      <p><a href="${confirmUrl}" target="_blank">Confirmar mi correo electrónico</a></p>
+      <p>Si el enlace no funciona, copia y pega esta URL en tu navegador:</p>
+      <p>${confirmUrl}</p>
+      <p>Saludos,<br/>Equipo Profesionales</p>
+    `;
+
+    try {
+      await sendEmail({ to: user.email, subject, html, text: `Visita ${confirmUrl} para confirmar tu correo.` });
+    } catch (mailErr) {
+      console.error('No se pudo enviar email de confirmación:', mailErr.message);
+      // No abortamos el registro por fallo en email, pero lo notificamos al frontend
+    }
+
     // Inicializar tokens si es profesional
     if (rol === 'profesional') {
       await inicializarTokens(user._id);
@@ -251,6 +280,36 @@ router.post('/refresh', auth, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
+// @route   GET /api/auth/confirm-email/:token
+// @desc    Confirmar dirección de email
+// @access  Public
+router.get('/confirm-email/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    if (!token) return res.status(400).send('Token inválido');
+
+    const user = await User.findOne({ emailConfirmToken: token, emailConfirmExpires: { $gt: Date.now() } });
+    if (!user) {
+      // Redirigir al frontend con error
+      const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0];
+      return res.redirect(`${frontendBase}/email-confirmed?success=0`);
+    }
+
+    user.verificado = true;
+    user.emailConfirmToken = undefined;
+    user.emailConfirmExpires = undefined;
+    await user.save();
+
+    const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0];
+    // Redirigir al frontend indicando éxito
+    return res.redirect(`${frontendBase}/email-confirmed?success=1`);
+  } catch (error) {
+    console.error('Error confirmando email:', error);
+    const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0];
+    return res.redirect(`${frontendBase}/email-confirmed?success=0`);
   }
 });
 

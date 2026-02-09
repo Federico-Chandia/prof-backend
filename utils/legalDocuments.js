@@ -92,9 +92,8 @@ Plataforma Profesionales - Buenos Aires, Argentina
 12.2 Leyes aplicables: Ley 24.240, Ley 25.326, Ley 25.506, Código Civil y Comercial.
 
 13. CONTACTO Y RECLAMOS
-Para reclamos, contacte a: legal@Profesionales.com.ar
-Para reportar conducta abusiva: abuse@Profesionales.com.ar
-Línea de atención: +54 (11) XXXX-XXXX
+Para reclamos, contacte a: Soporte.profesionales@outlook.com
+Para reportar conducta abusiva: Soporte.profesionales@outlook.com
 `;
 
 const POLITICA_PRIVACIDAD_PROFESIONALES = `
@@ -106,8 +105,7 @@ Conforme a Ley 25.326 - Protección de Datos Personales
 1. RESPONSABLE DE DATOS
 Responsable: Profesionales S.A.
 Domicilio: [Dirección Legal]
-Email: privacidad@Profesionales.com.ar
-Teléfono: +54 (11) XXXX-XXXX
+Email: Soporte.profesionales@outlook.com
 
 2. INFORMACIÓN QUE RECOPILAMOS
 2.1 Datos de Identificación:
@@ -176,7 +174,7 @@ Conforme a Ley 25.326 Art. 16 y ss., tienes derecho a:
 6.4 OPOSICIÓN: Oponerme al tratamiento de datos para ciertos fines
 6.5 REVOCACIÓN: Retirar tu consentimiento
 
-Para ejercer derechos: privacidad@Profesionales.com.ar
+Para ejercer derechos: Soporte.profesionales@outlook.com
 
 7. SEGURIDAD DE DATOS
 7.1 "Profesionales" implementa medidas técnicas y organizacionales para proteger datos:
@@ -215,14 +213,14 @@ Para ejercer derechos: privacidad@Profesionales.com.ar
 
 12. RESPONSABLE DE DATOS Y PROTECCIÓN
 12.1 "Profesionales" designó un Responsable de Datos (DPO equivalente).
-12.2 Para cuestiones de privacidad: privacidad@Profesionales.com.ar
+12.2 Para cuestiones de privacidad: Soporte.profesionales@outlook.com
 
 13. MODIFICACIONES
 13.1 Esta política puede modificarse. Notificaremos cambios significativos.
 
 14. RECLAMOS
 Si consideras que tu privacidad fue vulnerada:
-- Contacta a: privacidad@Profesionales.com.ar
+- Contacta a: Soporte.profesionales@outlook.com
 - Puedes presentar reclamo ante: DIRECCIÓN NACIONAL DE PROTECCIÓN DE DATOS PERSONALES
   (organismo de control bajo LPPD)
 
@@ -323,7 +321,7 @@ Para más detalles sobre cookies específicas, consulta nuestras políticas:
 Podemos actualizar esta política. Se notificará via email si hay cambios significativos.
 
 11. CONTACTO
-Preguntas sobre cookies: privacidad@Profesionales.com.ar
+Preguntas sobre cookies: Soporte.profesionales@outlook.com
 
 Conforme a Ley 25.326 y estándares internacionales de privacidad.
 `;
