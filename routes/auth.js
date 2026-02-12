@@ -81,10 +81,7 @@ router.post('/register', [
   body('password').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número'),
   body('rol').isIn(['cliente', 'profesional']).withMessage('Rol inválido'),
   body('direccion.calle').notEmpty().withMessage('La dirección es requerida'),
-  body('direccion.barrio').notEmpty().withMessage('El barrio es requerido'),
-  body('aceptacionLegal.terminosCondiciones.aceptado').equals('true').withMessage('Debes aceptar los Términos y Condiciones'),
-  body('aceptacionLegal.politicaPrivacidad.aceptado').equals('true').withMessage('Debes aceptar la Política de Privacidad'),
-  body('aceptacionLegal.politicaCookies.aceptado').equals('true').withMessage('Debes aceptar la Política de Cookies')
+  body('direccion.barrio').notEmpty().withMessage('El barrio es requerido')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -93,6 +90,14 @@ router.post('/register', [
     }
 
     const { nombre, email, password, telefono, rol, direccion, aceptacionLegal } = req.body;
+
+    // Verificar aceptación legal
+    if (!aceptacionLegal?.terminosCondiciones?.aceptado || !aceptacionLegal?.politicaPrivacidad?.aceptado || !aceptacionLegal?.politicaCookies?.aceptado) {
+      return res.status(400).json({ 
+        message: 'Debes aceptar todos los documentos legales',
+        errors: [{ msg: 'Aceptación legal incompleta' }]
+      });
+    }
 
     // Verificar si el usuario ya existe
     const existingUser = await User.findOne({ email });
@@ -120,7 +125,6 @@ router.post('/register', [
     await user.save();
 
     // Construir URL de confirmación
-    const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0];
     const confirmUrl = `${req.protocol}://${req.get('host')}/api/auth/confirm-email/${confirmToken}`;
 
     // Enviar email de confirmación
@@ -136,10 +140,12 @@ router.post('/register', [
     `;
 
     try {
+      console.log(`📧 Intentando enviar email de confirmación a: ${user.email}`);
       await sendEmail({ to: user.email, subject, html, text: `Visita ${confirmUrl} para confirmar tu correo.` });
+      console.log(`✅ Email de confirmación enviado a: ${user.email}`);
     } catch (mailErr) {
-      console.error('No se pudo enviar email de confirmación:', mailErr.message);
-      // No abortamos el registro por fallo en email, pero lo notificamos al frontend
+      console.error('❌ Error enviando email de confirmación:', mailErr.message);
+      // No abortamos el registro por fallo en email
     }
 
     // Inicializar tokens si es profesional
@@ -280,6 +286,41 @@ router.post('/refresh', auth, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
+// @route   GET /api/auth/test-email
+// @desc    Enviar email de prueba (solo desarrollo)
+// @access  Public
+router.get('/test-email/:email', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ message: 'Esta ruta no está disponible en producción' });
+    }
+
+    const { email } = req.params;
+    if (!email) return res.status(400).json({ message: 'Email requerido' });
+
+    const testUrl = `${req.protocol}://${req.get('host')}/api/auth/confirm-email/TEST123TOKEN`;
+    const html = `
+      <p>Hola Usuario de Prueba,</p>
+      <p>Bienvenido/a a Profesionales.</p>
+      <p>Para confirmar tu casilla de correo electrónico, por favor haga click en el siguiente enlace:</p>
+      <p><a href="${testUrl}" target="_blank">Confirmar mi correo electrónico</a></p>
+      <p>Este es un email de prueba enviado desde: ${new Date().toLocaleString()}</p>
+    `;
+
+    await sendEmail({ 
+      to: email, 
+      subject: '🧪 Email de Prueba - Profesionales', 
+      html,
+      text: `Visita ${testUrl} para confirmar tu correo.` 
+    });
+
+    res.json({ success: true, message: `Email de prueba enviado a ${email}` });
+  } catch (error) {
+    console.error('Error en test-email:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 
