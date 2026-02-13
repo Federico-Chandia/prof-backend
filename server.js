@@ -19,19 +19,23 @@ app.set('trust proxy', 1);
 const backendUrl = process.env.BACKEND_URL || 'localhost:5003';
 const wsUrl = `wss://${backendUrl}`;
 
-// Middleware de seguridad
+// Middleware de seguridad - Helmet sin CSP, lo configuramos nosotros
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", wsUrl],
-    },
-  },
+  contentSecurityPolicy: false, // Deshabilitamos CSP de helmet para manejarlo manualmente
 }));
+
+// Configurar CSP manualmente para excluir rutas legales
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api/legal/view/')) {
+    // CSP restrictivo para el resto de rutas
+    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' " + wsUrl);
+  } else {
+    // CSP más permisivo para documentos legales
+    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'");
+  }
+  next();
+});
 app.use(mongoSanitize());
 app.use(generalLimiter);
 app.use(validateContentType);

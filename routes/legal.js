@@ -343,6 +343,9 @@ router.get('/view/:type', (req, res) => {
     `;
     
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.send(html);
   } catch (error) {
     console.error('Error en /view/:type:', error);
