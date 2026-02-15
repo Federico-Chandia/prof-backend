@@ -123,6 +123,9 @@ router.post('/register', [
     user.emailConfirmToken = confirmToken;
     user.emailConfirmExpires = Date.now() + (24 * 60 * 60 * 1000); // 24 horas
     await user.save();
+    
+    console.log(`[REGISTER] Token de confirmación guardado para ${user.email}: ${confirmToken}`);
+    console.log(`[REGISTER] Expira en: ${new Date(user.emailConfirmExpires).toISOString()}`);
 
     // Construir URL de confirmación
     const confirmUrl = `${req.protocol}://${req.get('host')}/api/auth/confirm-email/${confirmToken}`;
@@ -330,10 +333,29 @@ router.get('/test-email/:email', async (req, res) => {
 router.get('/confirm-email/:token', async (req, res) => {
   try {
     const { token } = req.params;
+    console.log(`[CONFIRM-EMAIL] Recibido token: ${token}`);
     if (!token) return res.status(400).send('Token inválido');
 
-    const user = await User.findOne({ emailConfirmToken: token, emailConfirmExpires: { $gt: Date.now() } });
+    // Buscar usuario con token válido y no expirado
+    const now = Date.now();
+    console.log(`[CONFIRM-EMAIL] Buscando usuario con token=${token}, expiration > ${now}`);
+    
+    const user = await User.findOne({ 
+      emailConfirmToken: token, 
+      emailConfirmExpires: { $gt: now } 
+    });
+    
+    console.log(`[CONFIRM-EMAIL] Resultado de búsqueda: ${user ? `Usuario encontrado (${user.email})` : 'NO ENCONTRADO'}`);
+    
     if (!user) {
+      // Debug: Buscar si existe con token pero expirado
+      const expiredUser = await User.findOne({ emailConfirmToken: token });
+      if (expiredUser) {
+        console.log(`[CONFIRM-EMAIL] Token encontrado pero expirado. Email: ${expiredUser.email}, Expira: ${expiredUser.emailConfirmExpires}`);
+      } else {
+        console.log(`[CONFIRM-EMAIL] Token no encontrado en base de datos`);
+      }
+      
       // Redirigir al frontend con error
       const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0];
       return res.redirect(`${frontendBase}/email-confirmed?success=0`);
@@ -343,6 +365,8 @@ router.get('/confirm-email/:token', async (req, res) => {
     user.emailConfirmToken = undefined;
     user.emailConfirmExpires = undefined;
     await user.save();
+    
+    console.log(`[CONFIRM-EMAIL] Usuario confirmado exitosamente: ${user.email}`);
 
     const frontendBase = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0];
     // Redirigir al frontend indicando éxito

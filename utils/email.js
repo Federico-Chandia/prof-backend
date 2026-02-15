@@ -52,12 +52,20 @@ const sendEmail = async (options) => {
     console.log(`📧 Enviando email via API Brevo a: ${options.to}, Asunto: ${options.subject}`);
     
     const response = await brevoClient.post('/smtp/email', emailPayload);
-    
-    console.log('✅ Email enviado exitosamente via Brevo:', response.data.messageId);
-    return { success: true, messageId: response.data.messageId };
+
+    console.log('✅ Brevo response status:', response.status);
+    console.log('✅ Brevo response data:', JSON.stringify(response.data, null, 2));
+
+    // Some responses include messageId or messageIds; return full data for diagnostics
+    return { success: true, data: response.data };
   } catch (error) {
-    const errorMsg = error.response?.data?.message || error.message;
-    console.error('❌ Error enviando email:', errorMsg);
+    const resp = error.response;
+    if (resp) {
+      console.error('❌ Brevo error status:', resp.status);
+      console.error('❌ Brevo error data:', JSON.stringify(resp.data, null, 2));
+    }
+    console.error('❌ Error enviando email:', error.message);
+    const errorMsg = resp?.data?.message || error.message;
     throw new Error(`Error al enviar email: ${errorMsg}`);
   }
 };

@@ -88,6 +88,9 @@ app.use('/api/uploads', require('./routes/uploads'));
 // Documentos legales - Política de privacidad, términos y cookies
 app.use('/api/legal', require('./routes/legal'));
 
+// Brevo webhook endpoint to receive transactional events
+app.use('/webhooks/brevo', require('./routes/brevoWebhook'));
+
 // Ruta de prueba
 app.get('/', (req, res) => {
   res.json({ message: '🚀 API de Oficios Locales funcionando!' });
