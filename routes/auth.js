@@ -113,11 +113,13 @@ router.post('/register', [
       telefono,
       rol,
       direccion,
-      aceptacionLegal
+      aceptacionLegal,
+      verificado: true // ⏸️ PAUSADO: Confirmación de email deshabilitada. Se reactivará para lanzamiento público
     });
 
     await user.save();
 
+    /* ⏸️ PAUSADO: Confirmación de email deshabilitada hasta lanzamiento público
     // Generar token de confirmación por email
     const confirmToken = crypto.randomBytes(32).toString('hex');
     user.emailConfirmToken = confirmToken;
@@ -150,6 +152,7 @@ router.post('/register', [
       console.error('❌ Error enviando email de confirmación:', mailErr.message);
       // No abortamos el registro por fallo en email
     }
+    */// ⏸️ FIN PAUSADO
 
     // Inicializar tokens si es profesional
     if (rol === 'profesional') {
@@ -330,6 +333,8 @@ router.get('/test-email/:email', async (req, res) => {
 // @route   GET /api/auth/confirm-email/:token
 // @desc    Confirmar dirección de email
 // @access  Public
+// ⏸️ PAUSADO: Funcionalidad deshabilitada hasta lanzamiento público
+/*
 router.get('/confirm-email/:token', async (req, res) => {
   try {
     const { token } = req.params;
@@ -377,6 +382,7 @@ router.get('/confirm-email/:token', async (req, res) => {
     return res.redirect(`${frontendBase}/email-confirmed?success=0`);
   }
 });
+*/ // ⏸️ FIN PAUSADO
 
 // @route   POST /api/auth/change-password
 // @desc    Cambiar contraseña
