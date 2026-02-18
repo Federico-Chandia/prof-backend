@@ -70,13 +70,24 @@ class PaymentsController {
     }
   }
 
-  // Confirmar pago de suscripción
+  // Confirmar pago de suscripción (Webhook de MercadoPago)
   static async confirmarPagoSuscripcion(req, res) {
     try {
-      const { payment_id, status, external_reference } = req.body;
+      // Mercado Pago puede enviar datos en query params o en body
+      const data = req.body || req.query;
+      const { payment_id, status, external_reference } = data;
+
+      // Log para debugging
+      console.log('[Webhook MP] Datos recibidos:', { payment_id, status, external_reference });
+
+      if (!external_reference) {
+        console.warn('[Webhook MP] external_reference no encontrado');
+        return res.status(400).json({ message: 'external_reference requerido' });
+      }
       
       const pago = await Payment.findById(external_reference).populate('suscripcion');
       if (!pago) {
+        console.warn('[Webhook MP] Pago no encontrado:', external_reference);
         return res.status(404).json({ message: 'Pago no encontrado' });
       }
 
@@ -97,6 +108,8 @@ class PaymentsController {
           verificado: true
         });
 
+        console.log('[Webhook MP] Pago aprobado:', pago._id);
+
         // Analytics: proPaid
         try {
           const AnalyticsEvent = require('../models/AnalyticsEvent');
@@ -104,13 +117,18 @@ class PaymentsController {
         } catch (err) {
           console.error('Error logging analytics proPaid:', err);
         }
+      } else if (status === 'pending') {
+        pago.estado = 'pendiente';
+        console.log('[Webhook MP] Pago pendiente:', pago._id);
       } else {
         pago.estado = 'rechazado';
+        console.log('[Webhook MP] Pago rechazado:', pago._id);
       }
 
       await pago.save();
       res.json({ message: 'Pago procesado', estado: pago.estado });
     } catch (error) {
+      console.error('[Webhook MP] Error:', error);
       res.status(500).json({ message: error.message });
     }
   }
