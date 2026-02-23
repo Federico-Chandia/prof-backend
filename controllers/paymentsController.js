@@ -45,47 +45,17 @@ class PaymentsController {
         metodoPago: 'mercadopago',
         descripcion: `Suscripción ${plan} - 30 días`
       });
-      // Si existe una URL de preapproval configurada para el plan, usarla
-      const preapprovalUrls = {
-        profesional: process.env.MP_PROFESIONAL_PLAN_URL,
-        premium: process.env.MP_PREMIUM_PLAN_URL
-      };
 
-      const preapprovalUrl = preapprovalUrls[plan];
-
-      if (preapprovalUrl) {
-        // Guardar documentos y devolver el link de suscripción preaprobada
-        pago.mercadoPago.preferenceId = null;
-        await suscripcion.save();
-        await pago.save();
-
-        return res.json({
-          pagoId: pago._id,
-          preferenceId: null,
-          initPoint: preapprovalUrl
-        });
-      }
-
-      // Crear preferencia de MercadoPago (flujo por defecto si no hay preapproval URL)
-      const preferencia = await MercadoPagoService.crearPreferenciaSuscripcion({
-        plan,
-        precio: precios[plan],
-        usuarioNombre: usuario.nombre,
-        usuarioEmail: usuario.email,
-        pagoId: pago._id
-      });
-
-      pago.mercadoPago.preferenceId = preferencia.id;
-      
       await suscripcion.save();
       await pago.save();
 
+      // Devolver éxito - el frontend redirigirá a las URLs de MP
       res.json({
         pagoId: pago._id,
-        preferenceId: preferencia.id,
-        initPoint: preferencia.init_point
+        success: true
       });
     } catch (error) {
+      console.error('Error en crearPagoSuscripcion:', error);
       res.status(500).json({ message: error.message });
     }
   }
