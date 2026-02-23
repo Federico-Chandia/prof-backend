@@ -73,7 +73,13 @@ const profesionalSchema = new mongoose.Schema({
   // Métricas de respuesta automática para badge "Responde rápido"
   respuestaPromedioMinutos: { type: Number, default: null },
   respuestasContadas: { type: Number, default: 0 },
-  fastResponder: { type: Boolean, default: false }
+  fastResponder: { type: Boolean, default: false },
+  // Preferencia de género de clientes (opcional)
+  preferenciaProfesional: {
+    type: String,
+    enum: ['sin_preferencia', 'solo_mujeres', 'solo_hombres'],
+    default: 'sin_preferencia'
+  }
 }, {
   timestamps: true
 });

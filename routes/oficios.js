@@ -89,7 +89,7 @@ router.get('/', async (req, res) => {
 router.get('/mi-perfil', auth, async (req, res) => {
   try {
     const profesional = await Profesional.findOne({ usuario: req.user.id })
-      .populate('usuario', 'nombre avatar telefono email direccion');
+      .populate('usuario', 'nombre avatar telefono email direccion genero');
 
     if (!profesional) {
       return res.status(404).json({ message: 'Perfil de profesional no encontrado' });
@@ -282,20 +282,27 @@ router.put('/:id', auth, async (req, res) => {
 
     // Separar datos del usuario y del profesional
     // amazonq-ignore-next-line
-    const { nombreCompleto, telefono, fotoPerfil, ...profesionalData } = req.body;
+    const { nombreCompleto, telefono, fotoPerfil, genero, preferenciaProfesional, ...profesionalData } = req.body;
     
     // Actualizar usuario si hay datos
-    if (nombreCompleto || telefono || fotoPerfil) {
+    if (nombreCompleto || telefono || fotoPerfil || genero) {
       const userUpdate = {};
       if (nombreCompleto) userUpdate.nombre = nombreCompleto;
       if (telefono) userUpdate.telefono = telefono;
       if (fotoPerfil) userUpdate.avatar = fotoPerfil;
+      if (genero) userUpdate.genero = genero;
       
       await User.findByIdAndUpdate(req.user.id, userUpdate);
     }
 
     // Actualizar profesional (solo campos enviados)
     const updateFields = {};
+    
+    // Agregar preferenciaProfesional si se proporciona
+    if (preferenciaProfesional !== undefined) {
+      updateFields.preferenciaProfesional = preferenciaProfesional;
+    }
+    
     Object.keys(profesionalData).forEach(key => {
       if (profesionalData[key] !== undefined && profesionalData[key] !== null && profesionalData[key] !== '') {
         // Mapear tipoOficio a profesion

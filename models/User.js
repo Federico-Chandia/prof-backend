@@ -75,6 +75,17 @@ const userSchema = new mongoose.Schema({
       fechaAceptacion: Date,
       version: String
     }
+  },
+  // Preferencias de género (opcional)
+  genero: {
+    type: String,
+    enum: ['masculino', 'femenino', 'otro', 'prefiero_no_decir'],
+    default: 'prefiero_no_decir'
+  },
+  preferenciaCliente: {
+    type: String,
+    enum: ['sin_preferencia', 'solo_mujeres', 'solo_hombres'],
+    default: 'sin_preferencia'
   }
 }, {
   timestamps: true

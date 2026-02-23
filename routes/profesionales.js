@@ -17,7 +17,8 @@ router.get('/', async (req, res) => {
       disponible, 
       rating, 
       page = 1, 
-      limit = 10 
+      limit = 10,
+      clienteId // Para aplicar filtros de preferencia
     } = req.query;
 
     // Construir filtros
@@ -28,17 +29,51 @@ router.get('/', async (req, res) => {
     if (disponible === 'true') filters['disponibilidad.inmediata'] = true;
     if (rating) filters.rating = { $gte: parseFloat(rating) };
 
+    // Aplicar filtros de preferencia de género
+    if (clienteId) {
+      const cliente = await User.findById(clienteId);
+      if (cliente && cliente.preferenciaCliente && cliente.preferenciaCliente !== 'sin_preferencia') {
+        // El cliente tiene preferencia
+        const generoPreferido = cliente.preferenciaCliente === 'solo_mujeres' ? 'femenino' : 'masculino';
+        
+        // Buscar usuarios con ese género
+        const usuariosConGenero = await User.find({ genero: generoPreferido }).select('_id');
+        const usuarioIds = usuariosConGenero.map(u => u._id);
+        filters.usuario = { $in: usuarioIds };
+      }
+    }
+
     const profesionales = await Profesional.find(filters)
-      .populate('usuario', 'nombre avatar telefono')
+      .populate('usuario', 'nombre avatar telefono genero')
       .sort({ rating: -1, trabajosCompletados: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
+
+    // Filtrar profesionales según su preferencia de clientes
+    let profesionalesFiltrados = profesionales;
+    if (clienteId) {
+      const cliente = await User.findById(clienteId);
+      if (cliente && cliente.genero) {
+        profesionalesFiltrados = profesionales.filter(prof => {
+          if (!prof.preferenciaProfesional || prof.preferenciaProfesional === 'sin_preferencia') {
+            return true; // Sin preferencia, acepta todos
+          }
+          if (prof.preferenciaProfesional === 'solo_mujeres' && cliente.genero === 'femenino') {
+            return true;
+          }
+          if (prof.preferenciaProfesional === 'solo_hombres' && cliente.genero === 'masculino') {
+            return true;
+          }
+          return false;
+        });
+      }
+    }
 
     const total = await Profesional.countDocuments(filters);
 
     res.json({
       success: true,
-      profesionales,
+      profesionales: profesionalesFiltrados,
       pagination: {
         page: parseInt(page),
         pages: Math.ceil(total / limit),

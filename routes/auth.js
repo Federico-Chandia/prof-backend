@@ -89,7 +89,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, email, password, telefono, rol, direccion, aceptacionLegal } = req.body;
+    const { nombre, email, password, telefono, rol, direccion, aceptacionLegal, genero, preferenciaCliente } = req.body;
 
     // Verificar aceptación legal
     if (!aceptacionLegal?.terminosCondiciones?.aceptado || !aceptacionLegal?.politicaPrivacidad?.aceptado || !aceptacionLegal?.politicaCookies?.aceptado) {
@@ -105,7 +105,7 @@ router.post('/register', [
       return res.status(400).json({ message: 'El usuario ya existe' });
     }
 
-    // Crear usuario con información de aceptación legal
+    // Crear usuario con información de aceptación legal y preferencias
     const user = new User({
       nombre,
       email,
@@ -114,6 +114,8 @@ router.post('/register', [
       rol,
       direccion,
       aceptacionLegal,
+      genero: genero || 'prefiero_no_decir',
+      preferenciaCliente: preferenciaCliente || 'sin_preferencia',
       verificado: true // ⏸️ PAUSADO: Confirmación de email deshabilitada. Se reactivará para lanzamiento público
     });
 

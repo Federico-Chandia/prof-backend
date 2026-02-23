@@ -70,6 +70,12 @@ const solicitudSchema = new mongoose.Schema({
     activa: { type: Boolean, default: false },
     descripcion: String,
     fechaSolicitud: Date
+  },
+  // Preferencia de género del profesional (opcional)
+  preferenciaProfesional: {
+    type: String,
+    enum: ['sin_preferencia', 'prefiero_mujer', 'prefiero_hombre'],
+    default: 'sin_preferencia'
   }
 }, {
   timestamps: true
