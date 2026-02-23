@@ -10,7 +10,7 @@ class PaymentsController {
       const { plan } = req.body;
       const usuario = await User.findById(req.user.id);
       
-      if (usuario.rol !== 'oficio') {
+      if (usuario.rol !== 'profesional') {
         return res.status(403).json({ message: 'Solo profesionales pueden suscribirse a planes premium' });
       }
 
@@ -45,8 +45,28 @@ class PaymentsController {
         metodoPago: 'mercadopago',
         descripcion: `Suscripción ${plan} - 30 días`
       });
+      // Si existe una URL de preapproval configurada para el plan, usarla
+      const preapprovalUrls = {
+        profesional: process.env.MP_PROFESIONAL_PLAN_URL,
+        premium: process.env.MP_PREMIUM_PLAN_URL
+      };
 
-      // Crear preferencia de MercadoPago
+      const preapprovalUrl = preapprovalUrls[plan];
+
+      if (preapprovalUrl) {
+        // Guardar documentos y devolver el link de suscripción preaprobada
+        pago.mercadoPago.preferenceId = null;
+        await suscripcion.save();
+        await pago.save();
+
+        return res.json({
+          pagoId: pago._id,
+          preferenceId: null,
+          initPoint: preapprovalUrl
+        });
+      }
+
+      // Crear preferencia de MercadoPago (flujo por defecto si no hay preapproval URL)
       const preferencia = await MercadoPagoService.crearPreferenciaSuscripcion({
         plan,
         precio: precios[plan],

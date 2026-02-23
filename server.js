@@ -96,6 +96,11 @@ app.get('/', (req, res) => {
   res.json({ message: '🚀 API de Oficios Locales funcionando!' });
 });
 
+// Health check endpoint para mantener el servidor activo
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Middleware para rutas no encontradas
 app.use('*', (req, res) => {
   res.status(404).json({ message: 'Ruta no encontrada' });
@@ -140,6 +145,20 @@ cron.schedule('0 * * * *', async () => {
   }
 });
 
+// Cron job para mantener el servidor activo en Render (cada 10 minutos)
+const axios = require('axios');
+cron.schedule('*/10 * * * *', async () => {
+  try {
+    const url = process.env.BACKEND_URL ? `https://${process.env.BACKEND_URL}/api/health` : null;
+    if (url) {
+      await axios.get(url);
+      console.log('🏓 Ping enviado para mantener servidor activo');
+    }
+  } catch (error) {
+    console.error('❌ Error en ping:', error.message);
+  }
+});
+
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -167,6 +186,7 @@ app.use(express.json());
 server.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
   console.log('⏰ Cron job de auto-confirmación iniciado');
+  console.log('⏰ Cron job de keep-alive iniciado (cada 10 minutos)');
 });
 
 module.exports = { app, server, io };
