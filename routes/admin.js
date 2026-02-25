@@ -95,6 +95,7 @@ router.get('/users', [auth, authorize('admin')], async (req, res) => {
 router.delete('/users/:userId', [auth, authorize('admin')], adminController.deleteUser);
 router.patch('/users/:userId/toggle-status', [auth, authorize('admin')], adminController.toggleUserStatus);
 router.patch('/users/:userId/role', [auth, authorize('admin')], adminController.changeUserRole);
+router.patch('/users/:userId/reset-password', [auth, authorize('admin')], adminController.resetUserPassword);
 router.get('/users/:userId/details', [auth, authorize('admin')], adminController.getUserDetails);
 router.get('/users/search', [auth, authorize('admin')], adminController.searchUsers);
 

@@ -3,6 +3,7 @@ const Profesional = require('../models/Profesional');
 const Reserva = require('../models/Reserva');
 const Message = require('../models/Message');
 const Review = require('../models/Review');
+const bcrypt = require('bcryptjs');
 
 // Eliminar usuario
 exports.deleteUser = async (req, res) => {
@@ -155,6 +156,39 @@ exports.searchUsers = async (req, res) => {
       .limit(50);
 
     res.json({ success: true, users });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+};
+
+// Resetear contraseña de usuario
+exports.resetUserPassword = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    if (user.rol === 'admin') {
+      return res.status(403).json({ message: 'No se puede modificar la contraseña de un administrador' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Contraseña restablecida correctamente'
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error del servidor' });

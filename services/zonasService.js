@@ -23,6 +23,7 @@ const ZONAS_MAP = {
   
   // Gran Buenos Aires (Provincias)
   'la-plata': { city: 'La Plata', partido: 'La Plata', provincia: 'Buenos Aires' },
+  'magdalena': { city: 'Magdalena', partido: 'Magdalena', provincia: 'Buenos Aires' },
   'quilmes': { city: 'Quilmes', partido: 'Quilmes', provincia: 'Buenos Aires' },
   'bernal': { city: 'Bernal', partido: 'Quilmes', provincia: 'Buenos Aires' },
   'avellaneda': { city: 'Avellaneda', partido: 'Avellaneda', provincia: 'Buenos Aires' },
@@ -84,6 +85,13 @@ exports.filtrarPorZona = (profesionales, zonaNormalizada) => {
     
     // Matching exacto por city o partido
     return prof.zonasTrabajo.some(zona => {
+      // Primero intentar matching directo (case-insensitive)
+      const zonaLower = zona.toLowerCase().trim();
+      const busquedaLower = zonaNormalizada.city?.toLowerCase().trim();
+      
+      if (zonaLower === busquedaLower) return true;
+      
+      // Luego intentar normalizar y comparar
       const zonaNorm = exports.normalizarZona(zona);
       if (!zonaNorm) return false;
       
