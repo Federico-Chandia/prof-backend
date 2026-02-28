@@ -49,6 +49,10 @@ class PaymentsController {
       await suscripcion.save();
       await pago.save();
 
+      // Anotar la suscripción en el documento del usuario para poder
+      // consultarla rápidamente desde el perfil.
+      await User.findByIdAndUpdate(req.user.id, { suscripcion: suscripcion._id });
+
       // Devolver éxito - el frontend redirigirá a las URLs de MP
       res.json({
         pagoId: pago._id,
@@ -95,8 +99,26 @@ class PaymentsController {
         // Actualizar usuario
         await User.findByIdAndUpdate(pago.usuario, {
           planActual: pago.suscripcion.plan,
-          verificado: true
+          verificado: true,
+          suscripcion: pago.suscripcion._id
         });
+
+        // Recargar tokens automáticamente de acuerdo al plan adquirido
+        try {
+          const { recargarTokens } = require('../middleware/tokens');
+          const tokenAmounts = {
+            profesional: 20,
+            premium: 50,
+            // los demás planes (gratuito) no recargan tokens
+          };
+          const cantidad = tokenAmounts[pago.suscripcion.plan] || 0;
+          if (cantidad > 0) {
+            await recargarTokens(pago.usuario, cantidad, pago.suscripcion.plan);
+            console.log('[Webhook MP] Tokens recargados:', cantidad);
+          }
+        } catch (err) {
+          console.error('Error recargando tokens tras suscripción:', err);
+        }
 
         console.log('[Webhook MP] Pago aprobado:', pago._id);
 
