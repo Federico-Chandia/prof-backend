@@ -50,7 +50,6 @@ Plataforma Profesionales - Buenos Aires, Argentina
 6. SISTEMA DE CALIFICACIONES Y SANCIONES
 6.1 Los usuarios pueden calificar el servicio en una escala de 1 a 5 estrellas.
 6.2 "Profesionales" podrá suspender o cancelar la cuenta de un profesional que:
-    - Mantenga calificación promedio inferior a 3.0 estrellas por 30 días
     - Realice conducta discriminatoria o abusiva
     - Incumpla leyes laborales o fiscales
     - Utilice datos personales de forma indebida
@@ -67,7 +66,7 @@ Plataforma Profesionales - Buenos Aires, Argentina
 
 8. RESPONSABILIDAD LIMITADA
 8.1 "Profesionales" proporciona la plataforma "tal cual" sin garantías de disponibilidad continua.
-8.2 "Profesionales" no se responsabiliza por daños indirectos, lucro cesante o pérdida de datos.
+8.2 "Profesionales" no se responsabiliza por daños indirectos, lucro cesante, perdida de chance o pérdida de datos.
 8.3 La responsabilidad total de "Profesionales" está limitada al importe de suscripciones cobradas
     en los últimos 3 meses anteriores al hecho que generó la responsabilidad.
 
@@ -79,13 +78,13 @@ Plataforma Profesionales - Buenos Aires, Argentina
 
 10. MODIFICACIONES
 10.1 "Profesionales" se reserva el derecho de modificar estos términos.
-10.2 Los cambios serán notificados con 30 días de anticipación.
+10.2 Los cambios serán notificados con 30 días de anticipación por email o atraves de la plataforma.
 10.3 El uso continuado implica aceptación de cambios.
 
 11. RESOLUCIÓN DE DISPUTAS
 11.1 Las disputas entre Profesionales y Clientes se mediará por fuera de la plataforma.
 11.2 La mediación conforme a Ley 26.589 de Mediación es obligatoria antes de acciones legales.
-11.3 La jurisdicción corresponde a tribunales ordinarios de Buenos Aires.
+11.3 La jurisdicción corresponde a tribunales ordinarios donde acuerdes las partes.
 
 12. LEGISLACIÓN APLICABLE
 12.1 Estos términos se rigen por las leyes de la Provincia de Buenos Aires, Argentina.
