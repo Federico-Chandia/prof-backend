@@ -8,13 +8,13 @@ const profesionalSchema = new mongoose.Schema({
   },
   categoria: {
     type: String,
-    required: true,
-    enum: ['servicios-hogar', 'construccion', 'tecnologia', 'profesionales', 'salud-bienestar', 'educacion', 'eventos', 'transporte', 'otro']
+    required: true
+    // validamos externamente si es necesario; aceptamos cualquier slug correspondiente a un rubro controlado
   },
   profesion: {
     type: String,
-    required: true,
-    enum: ['plomero', 'electricista', 'gasista', 'pintor', 'carpintero', 'albañil', 'jardinero', 'cerrajero', 'aire-acondicionado', 'otro']
+    required: true
+    // el valor se toma directamente del front y puede ser cualquier oficio dentro de los rubros admitidos
   },
   profesionPersonalizada: {
     type: String

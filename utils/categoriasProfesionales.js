@@ -9,7 +9,9 @@ const CATEGORIAS_PROFESIONALES = {
       'cerrajero',
       'albanil',
       'aire-acondicionado',
-      'pintor'
+      'pintor',
+      'carpintero',
+      'jardinero'
     ],
     // subcategorías de ayuda para interfaces y migraciones
     subcategorias: {
@@ -19,7 +21,9 @@ const CATEGORIAS_PROFESIONALES = {
       cerrajero: ['Apertura de puertas', 'Cambio de cerraduras', 'Llaves perdidas', 'Cerraduras de seguridad'],
       albanil: ['Reparaciones generales', 'Revoques', 'Humedad', 'Pequeñas obras'],
       'aire-acondicionado': ['Instalación', 'Reparación', 'Carga de gas', 'Mantenimiento'],
-      pintor: ['Pintura interiores', 'Pintura exteriores', 'Barnizado']
+      pintor: ['Pintura interiores', 'Pintura exteriores', 'Barnizado'],
+      carpintero: ['Muebles a medida', 'Reparación de muebles', 'Instalación de puertas'],
+      jardinero: ['Corte de pasto', 'Plantaciones', 'Mantenimiento general']
     }
   }
 };
