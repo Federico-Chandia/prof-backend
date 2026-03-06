@@ -83,7 +83,11 @@ exports.changeUserRole = async (req, res) => {
       return res.status(403).json({ message: 'No se puede modificar un administrador' });
     }
 
-    user.rol = rol;
+    // Solo incrementar tokenVersion si el rol realmente cambió
+    if (user.rol !== rol) {
+      user.rol = rol;
+      user.tokenVersion = (user.tokenVersion || 0) + 1;
+    }
     await user.save();
 
     res.json({ 

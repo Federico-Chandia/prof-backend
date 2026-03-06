@@ -86,7 +86,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['sin_preferencia', 'solo_mujeres', 'solo_hombres'],
     default: 'sin_preferencia'
-  }
+  },
+  // Versión de token - se incrementa cuando cambia el rol u otros datos críticos
+  // Permite detectar cambios de role sin revalidar token
+  tokenVersion: { type: Number, default: 0 }
 }, {
   timestamps: true
 });

@@ -240,7 +240,14 @@ router.get('/me', auth, async (req, res) => {
       oficio = await Profesional.findOne({ usuario: user._id });
     }
     
-    res.json({ success: true, user, oficio: oficio?._id || null });
+    res.json({ 
+      success: true, 
+      user: {
+        ...user.toObject(),
+        tokenVersion: user.tokenVersion || 0
+      },
+      oficio: oficio?._id || null 
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error del servidor' });
