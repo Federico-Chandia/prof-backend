@@ -32,14 +32,16 @@ class SolicitudesController {
         // Emitir notificación en tiempo real al profesional (si está conectado)
         try {
           const { io } = require('../server');
+          const notificationsService = require('../services/notificationsService');
           const profesionalUsuarioId = profesional.usuario?._id ? profesional.usuario._id.toString() : null;
           if (profesionalUsuarioId) {
-            io.to(`user:${profesionalUsuarioId}`).emit('notify', {
-              title: 'Nueva solicitud de trabajo',
-              body: `Tienes una nueva solicitud de ${req.user.nombre || 'un cliente'}`,
-              data: { tipo: 'solicitud', id: solicitud._id, url: `/mis-trabajos?solicitud=${solicitud._id}` },
+            await notificationsService.sendNotification(io, profesionalUsuarioId, {
+              tipo: 'solicitud',
+              titulo: 'Nueva solicitud de trabajo',
+              mensaje: `Tienes una nueva solicitud de ${req.user.nombre || 'un cliente'}`,
               url: `/mis-trabajos?solicitud=${solicitud._id}`,
-              icon: '/icons/solicitud.png'
+              icono: '/icons/solicitud.png',
+              referencia: { solicitudId: solicitud._id }
             });
           }
         } catch (err) {

@@ -112,12 +112,14 @@ class ReservasController {
         const profesionalUsuarioId = ProfesionalPop?.usuario?._id ? ProfesionalPop.usuario._id.toString() : null;
         if (profesionalUsuarioId) {
           const { io } = require('../server');
-          io.to(`user:${profesionalUsuarioId}`).emit('notify', {
-            title: 'Nueva reserva creada',
-            body: `Nueva reserva de ${req.user.nombre || 'un cliente'} - ${descripcionTrabajo?.substring(0, 80) || ''}`,
-            data: { tipo: 'reserva', id: reserva._id, url: `/mis-trabajos?reserva=${reserva._id}` },
+          const notificationsService = require('../services/notificationsService');
+          await notificationsService.sendNotification(io, profesionalUsuarioId, {
+            tipo: 'reserva',
+            titulo: 'Nueva reserva creada',
+            mensaje: `Nueva reserva de ${req.user.nombre || 'un cliente'} - ${descripcionTrabajo?.substring(0, 80) || ''}`,
             url: `/mis-trabajos?reserva=${reserva._id}`,
-            icon: '/icons/reserva.png'
+            icono: '/icons/reserva.png',
+            referencia: { reservaId: reserva._id }
           });
         }
       } catch (err) {
@@ -197,12 +199,14 @@ class ReservasController {
         const profesionalUsuarioId = reserva.profesional && reserva.profesional.usuario ? reserva.profesional.usuario._id.toString() : null;
         if (profesionalUsuarioId) {
           const { io } = require('../server');
-          io.to(`user:${profesionalUsuarioId}`).emit('notify', {
-            title: 'Orden de servicio generada',
-            body: `Orden ${reserva.numeroOrden} - ${reserva.descripcionTrabajo?.substring(0, 80) || ''}`,
-            data: { tipo: 'orden', id: reserva._id, url: `/mis-trabajos?orden=${reserva._id}` },
+          const notificationsService = require('../services/notificationsService');
+          await notificationsService.sendNotification(io, profesionalUsuarioId, {
+            tipo: 'orden',
+            titulo: 'Orden de servicio generada',
+            mensaje: `Orden ${reserva.numeroOrden} - ${reserva.descripcionTrabajo?.substring(0, 80) || ''}`,
             url: `/mis-trabajos?orden=${reserva._id}`,
-            icon: '/icons/orden.png'
+            icono: '/icons/orden.png',
+            referencia: { reservaId: reserva._id }
           });
         }
       } catch (err) {

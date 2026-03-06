@@ -231,10 +231,18 @@ module.exports = function (io) {
           emitToUser(receptorId, 'unreadCount', { count: unread });
 
           // Emitir notificación liviana (integración con push se implementa aparte)
-          emitToUser(receptorId, 'notify', {
-            title: `Nuevo mensaje de ${socket.user.nombre}`,
-            body: tipo === 'texto' ? (mensaje.length > 120 ? mensaje.slice(0, 120) + '...' : mensaje) : 'Envío multimedia'
-          });
+          try {
+            const notificationsService = require('../services/notificationsService');
+            await notificationsService.sendNotification(io, receptorId, {
+              tipo: 'mensaje',
+              titulo: `Nuevo mensaje de ${socket.user.nombre}`,
+              mensaje: tipo === 'texto' ? (mensaje.length > 120 ? mensaje.slice(0, 120) + '...' : mensaje) : 'Envío multimedia',
+              url: `/mis-reservas?chat=${reservaId}`,
+              referencia: { mensajeId: saved._id }
+            });
+          } catch (err) {
+            console.warn('[socket] Error emitiendo notificación de mensaje:', err);
+          }
 
           if (callback) callback({ success: true, message: normalized });
         } catch (err) {

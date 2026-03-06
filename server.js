@@ -83,6 +83,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/tokens', require('./routes/tokens'));
+app.use('/api/notifications', require('./routes/notifications'));
 // Uploads (images)
 app.use('/api/uploads', require('./routes/uploads'));
 // Documentos legales - Política de privacidad, términos y cookies
