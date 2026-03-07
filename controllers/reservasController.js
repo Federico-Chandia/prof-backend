@@ -328,9 +328,32 @@ class ReservasController {
       reserva.estado = 'completada';
       reserva.confirmacion.clienteAprobado = true;
       reserva.confirmacion.fechaAprobadoCliente = new Date();
+      
+      // Actualizar costos con importeReal
+      if (!reserva.costos) {
+        reserva.costos = {};
+      }
       reserva.costos.importeReal = importeReal;
+      reserva.markModified('costos');
+      
+      console.log('[confirmarTrabajo] Guardando importeReal:', {
+        reservaId: id,
+        importeReal,
+        costosAntes: reserva.costos
+      });
 
       await reserva.save();
+      
+      console.log('[confirmarTrabajo] Guardado exitoso, refetchando...');
+
+      // Refetch reserva con todos los datos poblados
+      const reservaActualizada = await Reserva.findById(id)
+        .populate('cliente', 'nombre telefono')
+        .populate({
+          path: 'profesional',
+          select: 'profesion tarifas usuario',
+          populate: { path: 'usuario', select: 'nombre telefono' }
+        });
 
       // Actualizar estadísticas del profesional
       try {
@@ -363,9 +386,22 @@ class ReservasController {
         console.warn('Error creando notificación:', err.message);
       }
 
+      // Transformar para compatibilidad con frontend
+      const reservaObjeto = reservaActualizada?.toObject() || reserva.toObject();
+      if (reservaObjeto.profesional) {
+        reservaObjeto.oficio = reservaObjeto.profesional;
+      }
+
+      console.log('[confirmarTrabajo] Respuesta final:', {
+        reservaId: id,
+        importeReal: reservaObjeto.costos?.importeReal,
+        estado: reservaObjeto.estado,
+        confirmacion: reservaObjeto.confirmacion
+      });
+
       res.json({ 
         message: 'Trabajo confirmado.',
-        reserva 
+        reserva: reservaObjeto
       });
 
     } catch (error) {
