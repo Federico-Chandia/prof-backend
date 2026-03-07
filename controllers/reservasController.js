@@ -329,22 +329,15 @@ class ReservasController {
       reserva.confirmacion.clienteAprobado = true;
       reserva.confirmacion.fechaAprobadoCliente = new Date();
       
-      // Actualizar costos con importeReal
-      if (!reserva.costos) {
-        reserva.costos = {};
-      }
-      reserva.costos.importeReal = importeReal;
-      reserva.markModified('costos');
-      
-      console.log('[confirmarTrabajo] Guardando importeReal:', {
-        reservaId: id,
-        importeReal,
-        costosAntes: reserva.costos
-      });
+      // Actualizar costos con importeReal - asegurar que se guarde
+      reserva.costos = {
+        ...(reserva.costos || {}),
+        importeReal: importeReal
+      };
 
       await reserva.save();
       
-      console.log('[confirmarTrabajo] Guardado exitoso, refetchando...');
+      console.log('[confirmarTrabajo] Guardado exitoso, refetchando reserva...');
 
       // Refetch reserva con todos los datos poblados
       const reservaActualizada = await Reserva.findById(id)
@@ -352,8 +345,15 @@ class ReservasController {
         .populate({
           path: 'profesional',
           select: 'profesion tarifas usuario',
-          populate: { path: 'usuario', select: 'nombre telefono' }
-        });
+          populate: { path: 'usuario', select: '_id nombre telefono' }
+        })
+        .lean();
+
+      console.log('[confirmarTrabajo] Reserva refetch:', {
+        importeReal: reservaActualizada?.costos?.importeReal,
+        estado: reservaActualizada?.estado,
+        costos: reservaActualizada?.costos
+      });
 
       // Actualizar estadísticas del profesional
       try {
@@ -387,7 +387,12 @@ class ReservasController {
       }
 
       // Transformar para compatibilidad con frontend
-      const reservaObjeto = reservaActualizada?.toObject() || reserva.toObject();
+      if (!reservaActualizada) {
+        console.warn('[confirmarTrabajo] WARNING: reservaActualizada es null, usando fallback');
+        return res.status(500).json({ message: 'Error al confirmar trabajo: no se pudo refetch la reserva' });
+      }
+      
+      const reservaObjeto = reservaActualizada;
       if (reservaObjeto.profesional) {
         reservaObjeto.oficio = reservaObjeto.profesional;
       }
@@ -396,7 +401,7 @@ class ReservasController {
         reservaId: id,
         importeReal: reservaObjeto.costos?.importeReal,
         estado: reservaObjeto.estado,
-        confirmacion: reservaObjeto.confirmacion
+        hasCostos: !!reservaObjeto.costos
       });
 
       res.json({ 
