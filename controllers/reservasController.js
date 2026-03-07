@@ -239,7 +239,7 @@ class ReservasController {
       }
 
       // Verificar que es el profesional
-      const esProfesional = reserva.profesional.usuario.toString() === userId;
+      const esProfesional = reserva.profesional.usuario._id.toString() === userId;
       if (!esProfesional) {
         return res.status(403).json({ message: 'Solo el profesional puede marcar como completado' });
       }
@@ -475,7 +475,7 @@ class ReservasController {
 
       // Verificar permisos
       const esCliente = reserva.cliente._id.toString() === userId;
-      const esProfesional = reserva.profesional.usuario.toString() === userId;
+      const esProfesional = reserva.profesional.usuario._id.toString() === userId;
 
       if (!esCliente && !esProfesional) {
         return res.status(403).json({ message: 'No autorizado' });
