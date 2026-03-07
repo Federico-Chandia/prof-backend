@@ -16,13 +16,6 @@ class TokensController {
         return res.status(403).json({ message: 'Solo profesionales tienen tokens' });
       }
       
-      // Inicializar tokens si no existen o están en 0
-      if (!user.tokens || user.tokens.disponibles === 0) {
-        await inicializarTokens(userId);
-        const updatedUser = await User.findById(userId).select('tokens');
-        return res.json(updatedUser.tokens);
-      }
-      
       res.json(user.tokens);
     } catch (error) {
       res.status(500).json({ message: error.message });
