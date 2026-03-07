@@ -557,16 +557,26 @@ class ReservasController {
       const userId = req.user.id;
       const { tipo } = req.query;
 
+      console.log('[obtenerReservas] Obteniendo reservas:', { userId, tipo });
+
       let query = {};
       let populateFields = [];
 
       if (tipo === 'profesional') {
         // Buscar reservas donde el usuario es el profesional
+        console.log('[obtenerReservas] Buscando profesionales para usuario:', userId);
         const profesionales = await Profesional.find({ usuario: userId });
+        console.log('[obtenerReservas] Profesionales encontrados:', profesionales.length);
+        
         if (profesionales.length === 0) {
+          console.warn('[obtenerReservas] No hay profesionales para este usuario');
           return res.json([]);
         }
-        query.profesional = { $in: profesionales.map(p => p._id) };
+        
+        const profesionalIds = profesionales.map(p => p._id);
+        console.log('[obtenerReservas] IDs de profesionales:', profesionalIds);
+        
+        query.profesional = { $in: profesionalIds };
         populateFields = [
           { path: 'cliente', select: 'nombre telefono' },
           { 
@@ -577,6 +587,7 @@ class ReservasController {
         ];
       } else {
         // Por defecto buscar como cliente
+        console.log('[obtenerReservas] Buscando reservas del cliente:', userId);
         query.cliente = userId;
         populateFields = [
           { path: 'cliente', select: 'nombre telefono' },
@@ -588,9 +599,12 @@ class ReservasController {
         ];
       }
 
+      console.log('[obtenerReservas] Query:', JSON.stringify(query));
       const reservas = await Reserva.find(query)
         .populate(populateFields)
         .sort({ createdAt: -1 });
+
+      console.log('[obtenerReservas] Reservas encontradas:', reservas.length);
 
       // Transformar datos para compatibilidad con frontend
       const reservasTransformadas = reservas.map(reserva => {
@@ -605,6 +619,7 @@ class ReservasController {
       res.json(reservasTransformadas);
 
     } catch (error) {
+      console.error('[obtenerReservas] Error:', error.message);
       res.status(500).json({ message: error.message });
     }
   }
