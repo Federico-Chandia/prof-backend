@@ -324,44 +324,46 @@ class ReservasController {
         return res.status(400).json({ message: 'Debe ingresar el importe real cobrado' });
       }
 
-      // Confirmar trabajo
-      reserva.estado = 'completada';
-      reserva.confirmacion.clienteAprobado = true;
-      reserva.confirmacion.fechaAprobadoCliente = new Date();
-      
-      // Actualizar costos con importeReal - asegurar que se guarde
-      reserva.costos = {
-        ...(reserva.costos || {}),
-        importeReal: importeReal
-      };
+      console.log('[confirmarTrabajo] Actualizando reserva:', { id, importeReal });
 
-      await reserva.save();
-      
-      console.log('[confirmarTrabajo] Guardado exitoso, refetchando reserva...');
-
-      // Refetch reserva con todos los datos poblados
-      const reservaActualizada = await Reserva.findById(id)
+      // Actualizar directamente en BD usando findByIdAndUpdate
+      const reservaActualizada = await Reserva.findByIdAndUpdate(
+        id,
+        {
+          estado: 'completada',
+          'confirmacion.clienteAprobado': true,
+          'confirmacion.fechaAprobadoCliente': new Date(),
+          'costos.importeReal': Number(importeReal)
+        },
+        { new: true }
+      )
         .populate('cliente', 'nombre telefono')
         .populate({
           path: 'profesional',
           select: 'profesion tarifas usuario',
           populate: { path: 'usuario', select: '_id nombre telefono' }
-        })
-        .lean();
+        });
 
-      console.log('[confirmarTrabajo] Reserva refetch:', {
-        importeReal: reservaActualizada?.costos?.importeReal,
-        estado: reservaActualizada?.estado,
-        costos: reservaActualizada?.costos
+      if (!reservaActualizada) {
+        console.error('[confirmarTrabajo] ERROR: No se pudo actualizar la reserva');
+        return res.status(500).json({ message: 'Error al actualizar la reserva' });
+      }
+
+      console.log('[confirmarTrabajo] Guardado y refetch exitoso:', {
+        importeReal: reservaActualizada.costos?.importeReal,
+        estado: reservaActualizada.estado
       });
 
-      // Actualizar estadísticas del profesional
+      // Actualizar estadísticas del profesional - incrementar trabajosCompletados
       try {
-        await Profesional.findByIdAndUpdate(
+        const profesionalActualizado = await Profesional.findByIdAndUpdate(
           reserva.profesional._id,
           { $inc: { trabajosCompletados: 1 } },
           { new: true }
         );
+        console.log('[confirmarTrabajo] Profesional actualizado:', {
+          trabajosCompletados: profesionalActualizado?.trabajosCompletados
+        });
       } catch (err) {
         console.warn('Error actualizando estadísticas del profesional:', err.message);
       }
@@ -387,12 +389,7 @@ class ReservasController {
       }
 
       // Transformar para compatibilidad con frontend
-      if (!reservaActualizada) {
-        console.warn('[confirmarTrabajo] WARNING: reservaActualizada es null, usando fallback');
-        return res.status(500).json({ message: 'Error al confirmar trabajo: no se pudo refetch la reserva' });
-      }
-      
-      const reservaObjeto = reservaActualizada;
+      const reservaObjeto = reservaActualizada.toObject();
       if (reservaObjeto.profesional) {
         reservaObjeto.oficio = reservaObjeto.profesional;
       }
@@ -400,8 +397,7 @@ class ReservasController {
       console.log('[confirmarTrabajo] Respuesta final:', {
         reservaId: id,
         importeReal: reservaObjeto.costos?.importeReal,
-        estado: reservaObjeto.estado,
-        hasCostos: !!reservaObjeto.costos
+        estado: reservaObjeto.estado
       });
 
       res.json({ 
@@ -410,6 +406,7 @@ class ReservasController {
       });
 
     } catch (error) {
+      console.error('[confirmarTrabajo] Error:', error);
       res.status(500).json({ message: error.message });
     }
   }
