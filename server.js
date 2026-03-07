@@ -25,6 +25,31 @@ app.use(helmet({
   contentSecurityPolicy: false, // Deshabilitamos CSP de helmet para manejarlo manualmente
 }));
 
+// Configurar CORS ANTES de las demás cosas
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:5173', 'https://arregalo-profesionales.vercel.app'];
+
+console.log('CORS - Allowed Origins:', allowedOrigins);
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'X-Content-Type-Options'],
+  optionsSuccessStatus: 200
+}));
+
+// Manejar preflight requests explícitamente ANTES de otros middlewares
+app.options('*', cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'X-Requested-With'],
+  optionsSuccessStatus: 200
+}));
+
 // Configurar CSP manualmente para excluir rutas legales
 app.use((req, res, next) => {
   if (!req.path.startsWith('/api/legal/view/')) {
@@ -36,25 +61,17 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Body parser - DESPUÉS de CORS pero ANTES de seguridad adicional
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+
+// Seguridad adicional
 app.use(mongoSanitize());
 app.use(generalLimiter);
 app.use(validateContentType);
 app.use(sanitizeInput);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL.split(',')
-    : process.env.FRONTEND_URL.split(','),
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
-}));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cookieParser());
 
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
