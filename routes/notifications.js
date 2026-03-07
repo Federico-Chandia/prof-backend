@@ -1,5 +1,6 @@
 const express = require('express');
 const { auth } = require('../middleware/auth');
+const Notification = require('../models/Notification');
 const {
   getUserNotifications,
   markAsRead,
@@ -29,6 +30,40 @@ router.get('/', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error obteniendo notificaciones:', error);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
+// @route   POST /api/notifications
+// @desc    Crear una notificación
+// @access  Private
+router.post('/', auth, async (req, res) => {
+  try {
+    const { notification } = req.body;
+    
+    if (!notification || !notification.titulo || !notification.mensaje) {
+      return res.status(400).json({ message: 'Datos de notificación incompletos' });
+    }
+
+    const newNotification = new Notification({
+      usuario: req.user.id,
+      tipo: notification.tipo || 'otro',
+      titulo: notification.titulo,
+      mensaje: notification.mensaje,
+      url: notification.url || null,
+      icono: notification.icon || notification.icono || null,
+      referencia: notification.referencia || {},
+      etiqueta: notification.etiqueta || null
+    });
+
+    await newNotification.save();
+
+    res.status(201).json({
+      success: true,
+      notification: newNotification
+    });
+  } catch (error) {
+    console.error('Error creando notificación:', error);
     res.status(500).json({ message: 'Error del servidor' });
   }
 });

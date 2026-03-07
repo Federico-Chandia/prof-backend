@@ -228,7 +228,11 @@ class ReservasController {
 
       const reserva = await Reserva.findById(id)
         .populate('cliente')
-        .populate('profesional');
+        .populate('profesional')
+        .populate({
+          path: 'profesional',
+          populate: { path: 'usuario', select: '_id nombre' }
+        });
 
       if (!reserva) {
         return res.status(404).json({ message: 'Reserva no encontrada' });
@@ -256,6 +260,26 @@ class ReservasController {
 
       await reserva.save();
 
+      // Crear notificación para el cliente
+      try {
+        const notificationsService = require('../services/notificationsService');
+        const { io } = require('../server');
+        const clienteUserId = reserva.cliente?._id?.toString();
+        
+        if (clienteUserId) {
+          await notificationsService.sendNotification(io, clienteUserId, {
+            tipo: 'reserva',
+            titulo: 'Trabajo completado',
+            mensaje: `El profesional ${reserva.profesional?.usuario?.nombre || 'el profesional'} ha completado el trabajo. Revisa los detalles y confirma.`,
+            url: `/mis-reservas?reserva=${reserva._id}`,
+            icono: '✅',
+            referencia: { reservaId: reserva._id }
+          });
+        }
+      } catch (err) {
+        console.warn('Error creando notificación para cliente:', err.message);
+      }
+
       res.json({ 
         message: 'Trabajo marcado como completado. Esperando confirmación del cliente.',
         reserva 
@@ -275,7 +299,11 @@ class ReservasController {
 
       const reserva = await Reserva.findById(id)
         .populate('cliente')
-        .populate('profesional');
+        .populate('profesional')
+        .populate({
+          path: 'profesional',
+          populate: { path: 'usuario', select: '_id nombre' }
+        });
 
       if (!reserva) {
         return res.status(404).json({ message: 'Reserva no encontrada' });
@@ -303,6 +331,37 @@ class ReservasController {
       reserva.costos.importeReal = importeReal;
 
       await reserva.save();
+
+      // Actualizar estadísticas del profesional
+      try {
+        await Profesional.findByIdAndUpdate(
+          reserva.profesional._id,
+          { $inc: { trabajosCompletados: 1 } },
+          { new: true }
+        );
+      } catch (err) {
+        console.warn('Error actualizando estadísticas del profesional:', err.message);
+      }
+
+      // Crear notificación para el profesional
+      try {
+        const notificationsService = require('../services/notificationsService');
+        const { io } = require('../server');
+        const profesionalUserId = reserva.profesional?.usuario?._id?.toString();
+        
+        if (profesionalUserId) {
+          await notificationsService.sendNotification(io, profesionalUserId, {
+            tipo: 'pago',
+            titulo: 'Trabajo confirmado y pagado',
+            mensaje: `El cliente ha confirmado la finalización del trabajo. Importe: $${importeReal.toLocaleString()}`,
+            url: `/mis-trabajos?reserva=${reserva._id}`,
+            icono: '✅',
+            referencia: { reservaId: reserva._id }
+          });
+        }
+      } catch (err) {
+        console.warn('Error creando notificación:', err.message);
+      }
 
       res.json({ 
         message: 'Trabajo confirmado.',
