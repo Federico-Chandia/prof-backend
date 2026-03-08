@@ -121,6 +121,8 @@ class ReservasController {
             icono: '/icons/reserva.png',
             referencia: { reservaId: reserva._id }
           });
+          // Emitir evento para actualizar lista
+          io.to(profesionalUsuarioId).emit('nuevaReserva', { reservaId: reserva._id });
         }
       } catch (err) {
         console.warn('Error emitiendo notificación de reserva:', err.message || err);
@@ -275,6 +277,8 @@ class ReservasController {
             icono: '✅',
             referencia: { reservaId: reserva._id }
           });
+          // Emitir evento para actualizar lista
+          io.to(clienteUserId).emit('reservaActualizada', { reservaId: reserva._id });
         }
       } catch (err) {
         console.warn('Error creando notificación para cliente:', err.message);
@@ -383,6 +387,8 @@ class ReservasController {
             icono: '✅',
             referencia: { reservaId: reserva._id }
           });
+          // Emitir evento para actualizar lista
+          io.to(profesionalUserId).emit('reservaActualizada', { reservaId: reserva._id });
         }
       } catch (err) {
         console.warn('Error creando notificación:', err.message);
@@ -448,6 +454,26 @@ class ReservasController {
 
       await reserva.save();
 
+      // Notificar al profesional
+      try {
+        const { io } = require('../server');
+        const notificationsService = require('../services/notificationsService');
+        const profesionalUserId = reserva.profesional?.usuario?._id?.toString();
+        if (profesionalUserId) {
+          await notificationsService.sendNotification(io, profesionalUserId, {
+            tipo: 'reserva',
+            titulo: 'Correcciones solicitadas',
+            mensaje: `El cliente solicita correcciones: ${descripcion.substring(0, 80)}`,
+            url: `/mis-trabajos?reserva=${reserva._id}`,
+            icono: '🔧',
+            referencia: { reservaId: reserva._id }
+          });
+          io.to(profesionalUserId).emit('reservaActualizada', { reservaId: reserva._id });
+        }
+      } catch (err) {
+        console.warn('Error emitiendo notificación de correcciones:', err.message);
+      }
+
       res.json({ 
         message: 'Solicitud de correcciones enviada al profesional.',
         reserva 
@@ -499,9 +525,28 @@ class ReservasController {
             `Trabajo aceptado: ${reserva.descripcionTrabajo.substring(0, 50)}...`
           );
           
-          // Agregar información de tokens a la respuesta
           reserva.estado = estado;
           await reserva.save();
+          
+          // Notificar al cliente
+          try {
+            const { io } = require('../server');
+            const notificationsService = require('../services/notificationsService');
+            const clienteUserId = reserva.cliente?._id?.toString();
+            if (clienteUserId) {
+              await notificationsService.sendNotification(io, clienteUserId, {
+                tipo: 'reserva',
+                titulo: 'Trabajo aceptado',
+                mensaje: `El profesional ha aceptado tu solicitud y comenzará el trabajo.`,
+                url: `/mis-reservas?reserva=${reserva._id}`,
+                icono: '✅',
+                referencia: { reservaId: reserva._id }
+              });
+              io.to(clienteUserId).emit('reservaActualizada', { reservaId: reserva._id });
+            }
+          } catch (err) {
+            console.warn('Error emitiendo notificación:', err.message);
+          }
           
           return res.json({ 
             message: 'Trabajo aceptado. Token consumido.', 
@@ -516,8 +561,64 @@ class ReservasController {
         }
       }
 
+      // Si se cancela la reserva
+      if (estado === 'cancelada') {
+        try {
+          const { io } = require('../server');
+          const notificationsService = require('../services/notificationsService');
+          
+          if (esCliente) {
+            // Cliente cancela, notificar al profesional
+            const profesionalUserId = reserva.profesional?.usuario?._id?.toString();
+            if (profesionalUserId) {
+              await notificationsService.sendNotification(io, profesionalUserId, {
+                tipo: 'reserva',
+                titulo: 'Reserva cancelada',
+                mensaje: 'El cliente ha cancelado la reserva.',
+                url: `/mis-trabajos?reserva=${reserva._id}`,
+                icono: '❌',
+                referencia: { reservaId: reserva._id }
+              });
+              io.to(profesionalUserId).emit('reservaActualizada', { reservaId: reserva._id });
+            }
+          } else if (esProfesional) {
+            // Profesional rechaza, notificar al cliente
+            const clienteUserId = reserva.cliente?._id?.toString();
+            if (clienteUserId) {
+              await notificationsService.sendNotification(io, clienteUserId, {
+                tipo: 'reserva',
+                titulo: 'Reserva rechazada',
+                mensaje: 'El profesional ha rechazado la reserva.',
+                url: `/mis-reservas?reserva=${reserva._id}`,
+                icono: '❌',
+                referencia: { reservaId: reserva._id }
+              });
+              io.to(clienteUserId).emit('reservaActualizada', { reservaId: reserva._id });
+            }
+          }
+        } catch (err) {
+          console.warn('Error emitiendo notificación de cancelación:', err.message);
+        }
+      }
+
       reserva.estado = estado;
       await reserva.save();
+
+      // Emitir evento de actualización
+      try {
+        const { io } = require('../server');
+        const clienteUserId = reserva.cliente?._id?.toString();
+        const profesionalUserId = reserva.profesional?.usuario?._id?.toString();
+        
+        if (clienteUserId) {
+          io.to(clienteUserId).emit('reservaActualizada', { reservaId: reserva._id });
+        }
+        if (profesionalUserId) {
+          io.to(profesionalUserId).emit('reservaActualizada', { reservaId: reserva._id });
+        }
+      } catch (err) {
+        console.warn('Error emitiendo evento socket:', err.message);
+      }
 
       res.json({ message: 'Estado actualizado', reserva });
 
