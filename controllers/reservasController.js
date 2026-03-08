@@ -3,6 +3,9 @@ const User = require('../models/User');
 const Profesional = require('../models/Profesional');
 const locationService = require('../services/locationService');
 const { consumirToken } = require('../middleware/tokens');
+const { emitirNotificacion, emitirActualizacion } = require('../helpers/notificationsHelper');
+const Solicitud = require('../models/Solicitud');
+const Review = require('../models/Review');
 
 class ReservasController {
   // Validar cobertura y calcular costos
@@ -108,12 +111,11 @@ class ReservasController {
 
       // Emitir notificación en tiempo real al profesional
       try {
+        const io = req.app?.locals?.io;
         const ProfesionalPop = await Profesional.findById(oficioId).populate('usuario');
         const profesionalUsuarioId = ProfesionalPop?.usuario?._id ? ProfesionalPop.usuario._id.toString() : null;
-        if (profesionalUsuarioId) {
-          const { io } = require('../server');
-          const notificationsService = require('../services/notificationsService');
-          await notificationsService.sendNotification(io, profesionalUsuarioId, {
+        if (profesionalUsuarioId && io) {
+          await emitirNotificacion(io, profesionalUsuarioId, {
             tipo: 'reserva',
             titulo: 'Nueva reserva creada',
             mensaje: `Nueva reserva de ${req.user.nombre || 'un cliente'} - ${descripcionTrabajo?.substring(0, 80) || ''}`,
@@ -121,8 +123,12 @@ class ReservasController {
             icono: '/icons/reserva.png',
             referencia: { reservaId: reserva._id }
           });
-          // Emitir evento para actualizar lista
-          io.to(profesionalUsuarioId).emit('nuevaReserva', { reservaId: reserva._id });
+          
+          // Emitir actualización de datos
+          await emitirActualizacion(io, 'profesional', oficioId, {
+            evento: 'nuevaReserva',
+            reservaId: reserva._id
+          });
         }
       } catch (err) {
         console.warn('Error emitiendo notificación de reserva:', err.message || err);
@@ -264,12 +270,11 @@ class ReservasController {
 
       // Crear notificación para el cliente
       try {
-        const notificationsService = require('../services/notificationsService');
-        const { io } = require('../server');
+        const io = req.app?.locals?.io;
         const clienteUserId = reserva.cliente?._id?.toString();
         
-        if (clienteUserId) {
-          await notificationsService.sendNotification(io, clienteUserId, {
+        if (clienteUserId && io) {
+          await emitirNotificacion(io, clienteUserId, {
             tipo: 'reserva',
             titulo: 'Trabajo completado',
             mensaje: `El profesional ${reserva.profesional?.usuario?.nombre || 'el profesional'} ha completado el trabajo. Revisa los detalles y confirma.`,
@@ -278,7 +283,7 @@ class ReservasController {
             referencia: { reservaId: reserva._id }
           });
           // Emitir evento para actualizar lista
-          io.to(clienteUserId).emit('reservaActualizada', { reservaId: reserva._id });
+          await emitirActualizacion(io, 'reserva', reserva._id, { evento: 'trabajoCompletado' });
         }
       } catch (err) {
         console.warn('Error creando notificación para cliente:', err.message);
@@ -456,11 +461,10 @@ class ReservasController {
 
       // Notificar al profesional
       try {
-        const { io } = require('../server');
-        const notificationsService = require('../services/notificationsService');
+        const io = req.app?.locals?.io;
         const profesionalUserId = reserva.profesional?.usuario?._id?.toString();
-        if (profesionalUserId) {
-          await notificationsService.sendNotification(io, profesionalUserId, {
+        if (profesionalUserId && io) {
+          await emitirNotificacion(io, profesionalUserId, {
             tipo: 'reserva',
             titulo: 'Correcciones solicitadas',
             mensaje: `El cliente solicita correcciones: ${descripcion.substring(0, 80)}`,
@@ -468,9 +472,7 @@ class ReservasController {
             icono: '🔧',
             referencia: { reservaId: reserva._id }
           });
-          io.to(profesionalUserId).emit('reservaActualizada', { reservaId: reserva._id });
-        }
-      } catch (err) {
+          await emitirActualizacion(io, 'reserva', reserva._id, { evento: 'correccesionesSolicitadas' });
         console.warn('Error emitiendo notificación de correcciones:', err.message);
       }
 
@@ -530,19 +532,18 @@ class ReservasController {
           
           // Notificar al cliente
           try {
-            const { io } = require('../server');
-            const notificationsService = require('../services/notificationsService');
+            const io = req.app?.locals?.io;
             const clienteUserId = reserva.cliente?._id?.toString();
-            if (clienteUserId) {
-              await notificationsService.sendNotification(io, clienteUserId, {
+            if (clienteUserId && io) {
+              await emitirNotificacion(io, clienteUserId, {
                 tipo: 'reserva',
-                titulo: 'Trabajo aceptado',
+                titulo: '✅ Trabajo aceptado',
                 mensaje: `El profesional ha aceptado tu solicitud y comenzará el trabajo.`,
                 url: `/mis-reservas?reserva=${reserva._id}`,
                 icono: '✅',
                 referencia: { reservaId: reserva._id }
               });
-              io.to(clienteUserId).emit('reservaActualizada', { reservaId: reserva._id });
+              await emitirActualizacion(io, 'reserva', reserva._id, { evento: 'trabajoAceptado' });
             }
           } catch (err) {
             console.warn('Error emitiendo notificación:', err.message);
@@ -564,36 +565,35 @@ class ReservasController {
       // Si se cancela la reserva
       if (estado === 'cancelada') {
         try {
-          const { io } = require('../server');
-          const notificationsService = require('../services/notificationsService');
+          const io = req.app?.locals?.io;
           
-          if (esCliente) {
+          if (esCliente && io) {
             // Cliente cancela, notificar al profesional
             const profesionalUserId = reserva.profesional?.usuario?._id?.toString();
             if (profesionalUserId) {
-              await notificationsService.sendNotification(io, profesionalUserId, {
+              await emitirNotificacion(io, profesionalUserId, {
                 tipo: 'reserva',
-                titulo: 'Reserva cancelada',
-                mensaje: 'El cliente ha cancelado la reserva.',
+                titulo: '❌ Orden cancelada',
+                mensaje: 'El cliente ha cancelado la orden.',
                 url: `/mis-trabajos?reserva=${reserva._id}`,
                 icono: '❌',
                 referencia: { reservaId: reserva._id }
               });
-              io.to(profesionalUserId).emit('reservaActualizada', { reservaId: reserva._id });
+              await emitirActualizacion(io, 'reserva', reserva._id, { evento: 'ordenCancelada' });
             }
-          } else if (esProfesional) {
+          } else if (esProfesional && io) {
             // Profesional rechaza, notificar al cliente
             const clienteUserId = reserva.cliente?._id?.toString();
             if (clienteUserId) {
-              await notificationsService.sendNotification(io, clienteUserId, {
+              await emitirNotificacion(io, clienteUserId, {
                 tipo: 'reserva',
-                titulo: 'Reserva rechazada',
-                mensaje: 'El profesional ha rechazado la reserva.',
+                titulo: '❌ Trabajo rechazado',
+                mensaje: 'El profesional ha rechazado tu solicitud. Prueba con otro profesional.',
                 url: `/mis-reservas?reserva=${reserva._id}`,
                 icono: '❌',
                 referencia: { reservaId: reserva._id }
               });
-              io.to(clienteUserId).emit('reservaActualizada', { reservaId: reserva._id });
+              await emitirActualizacion(io, 'reserva', reserva._id, { evento: 'trabajoRechazado' });
             }
           }
         } catch (err) {
@@ -606,15 +606,9 @@ class ReservasController {
 
       // Emitir evento de actualización
       try {
-        const { io } = require('../server');
-        const clienteUserId = reserva.cliente?._id?.toString();
-        const profesionalUserId = reserva.profesional?.usuario?._id?.toString();
-        
-        if (clienteUserId) {
-          io.to(clienteUserId).emit('reservaActualizada', { reservaId: reserva._id });
-        }
-        if (profesionalUserId) {
-          io.to(profesionalUserId).emit('reservaActualizada', { reservaId: reserva._id });
+        const io = req.app?.locals?.io;
+        if (io) {
+          await emitirActualizacion(io, 'reserva', reserva._id, { evento: 'estadoActualizado', nuevoEstado: estado });
         }
       } catch (err) {
         console.warn('Error emitiendo evento socket:', err.message);

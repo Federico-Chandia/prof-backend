@@ -2,6 +2,7 @@ const Solicitud = require('../models/Solicitud');
 const User = require('../models/User');
 const Profesional = require('../models/Profesional');
 const SubscriptionsController = require('./subscriptionsController');
+const { emitirNotificacion, emitirActualizacion } = require('../helpers/notificationsHelper');
 
 class SolicitudesController {
   // Crear solicitud (sin créditos para clientes)
@@ -29,24 +30,30 @@ class SolicitudesController {
       });
 
       await solicitud.save();
-        // Emitir notificación en tiempo real al profesional (si está conectado)
-        try {
-          const { io } = require('../server');
-          const notificationsService = require('../services/notificationsService');
-          const profesionalUsuarioId = profesional.usuario?._id ? profesional.usuario._id.toString() : null;
-          if (profesionalUsuarioId) {
-            await notificationsService.sendNotification(io, profesionalUsuarioId, {
-              tipo: 'solicitud',
-              titulo: 'Nueva solicitud de trabajo',
-              mensaje: `Tienes una nueva solicitud de ${req.user.nombre || 'un cliente'}`,
-              url: `/mis-trabajos?solicitud=${solicitud._id}`,
-              icono: '/icons/solicitud.png',
-              referencia: { solicitudId: solicitud._id }
-            });
-          }
-        } catch (err) {
-          console.warn('Error emitiendo notificación de solicitud:', err.message || err);
+      
+      // Emitir notificación en tiempo real al profesional (si está conectado)
+      try {
+        const io = req.app?.locals?.io;
+        const profesionalUsuarioId = profesional.usuario?._id ? profesional.usuario._id.toString() : null;
+        if (profesionalUsuarioId && io) {
+          await emitirNotificacion(io, profesionalUsuarioId, {
+            tipo: 'solicitud',
+            titulo: 'Nueva solicitud de trabajo',
+            mensaje: `Tienes una nueva solicitud de ${req.user.nombre || 'un cliente'}`,
+            url: `/mis-trabajos?solicitud=${solicitud._id}`,
+            icono: '/icons/solicitud.png',
+            referencia: { solicitudId: solicitud._id }
+          });
+          
+          // También emitir actualización de datos
+          await emitirActualizacion(io, 'profesional', profesional._id, {
+            evento: 'nuevaSolicitud',
+            solicitud: solicitud._id
+          });
         }
+      } catch (err) {
+        console.warn('Error emitiendo notificación de solicitud:', err.message || err);
+      }
 
       res.status(201).json({
         solicitud: {

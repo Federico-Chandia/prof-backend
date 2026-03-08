@@ -2,6 +2,7 @@ const Payment = require('../models/Payment');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const MercadoPagoService = require('../services/mercadoPago');
+const { emitirNotificacion, emitirActualizacion } = require('../helpers/notificationsHelper');
 
 class PaymentsController {
   // Crear pago para suscripción premium
@@ -121,6 +122,29 @@ class PaymentsController {
         }
 
         console.log('[Webhook MP] Pago aprobado:', pago._id);
+
+        // Enviar notificación al usuario
+        try {
+          const io = req.app?.locals?.io;
+          if (io) {
+            await emitirNotificacion(io, pago.usuario.toString(), {
+              tipo: 'pago',
+              titulo: 'Pago completado ✅',
+              mensaje: `Tu suscripción al plan ${pago.suscripcion.plan} ha sido confirmada. ¡Ya puedes usar todos los beneficios!`,
+              url: '/mi-cuenta/suscripcion',
+              icono: '/icons/pago.png',
+              referencia: { pagoId: pago._id, suscripcionId: pago.suscripcion._id }
+            });
+
+            // Emitir actualización
+            await emitirActualizacion(io, 'suscripcion', pago.suscripcion._id, {
+              evento: 'pagoCompletado',
+              estado: 'activa'
+            });
+          }
+        } catch (err) {
+          console.error('Error emitiendo notificación de pago:', err);
+        }
 
         // Analytics: proPaid
         try {

@@ -73,6 +73,9 @@ app.use(generalLimiter);
 app.use(validateContentType);
 app.use(sanitizeInput);
 
+// Socket.IO será inicializado después de que el servidor HTTP se cree
+// El middleware se agregará después de inicializar io
+
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
@@ -181,7 +184,8 @@ const io = new Server(server, {
 // Inicializar manejadores de sockets (chat)
 try {
   require('./sockets/chat')(io);
-  console.log('🔌 Socket.IO inicializado');
+  require('./sockets/notifications')(io);
+  console.log('🔌 Socket.IO inicializado (chat y notificaciones)');
 } catch (err) {
   console.error('Error inicializando sockets:', err);
 }
@@ -191,5 +195,8 @@ server.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
   console.log('⏰ Cron job de auto-confirmación iniciado');
 });
+
+// Hacer disponible io a través de app
+app.locals.io = io;
 
 module.exports = { app, server, io };
