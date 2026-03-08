@@ -119,8 +119,8 @@ const inicializarTokens = async (userId, plan = 'basico') => {
       return null;
     }
     
-    // Solo inicializar si no tiene tokens o tiene 0 tokens
-    if (!user.tokens || user.tokens.disponibles === 0) {
+    // Solo inicializar si NO tiene tokens (primera vez)
+    if (!user.tokens) {
       const tokensIniciales = {
         basico: 2,
         premium: 20,
