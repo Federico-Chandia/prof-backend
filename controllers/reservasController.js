@@ -473,6 +473,8 @@ class ReservasController {
             referencia: { reservaId: reserva._id }
           });
           await emitirActualizacion(io, 'reserva', reserva._id, { evento: 'correccesionesSolicitadas' });
+        }
+      } catch (err) {
         console.warn('Error emitiendo notificación de correcciones:', err.message);
       }
 
@@ -484,7 +486,7 @@ class ReservasController {
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
-  }
+  }  
 
   // Cambiar estado de reserva (método simplificado)
   static async cambiarEstado(req, res) {
